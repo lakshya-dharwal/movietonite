@@ -1,0 +1,25 @@
+# Render Blueprint for the WSIWT backend (native Python web service).
+# In Render: New > Blueprint, select this repo. Set the three `sync: false`
+# secrets in the dashboard (TMDB_API_KEY, ANTHROPIC_API_KEY, ALLOWED_ORIGIN).
+services:
+  - type: web
+    name: wsiwt-backend
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.4
+      - key: ANTHROPIC_MODEL
+        value: claude-opus-4-8
+      - key: CACHE_TTL_SECONDS
+        value: "86400"
+      - key: TMDB_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ALLOWED_ORIGIN
+        sync: false
