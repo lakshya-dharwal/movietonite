@@ -9,7 +9,9 @@ export interface UserPreferences {
   pacing: string;
   origin: string;
   indian_langs: string[];
+  decades: string[];
   recent_loves: string[];
+  exclude_titles: string[];
   min_rating: number;
   sort_by: string;
 }
@@ -42,4 +44,5 @@ export interface Recommendation {
 
 export interface RecommendResponse {
   results: Recommendation[];
+  mood_read: string;
 }

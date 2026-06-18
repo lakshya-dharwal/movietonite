@@ -26,15 +26,41 @@ def _region_for(prefs: UserPreferences) -> str:
     return "IN" if prefs.origin in ("indian", "both") else "US"
 
 
+def _decade_ranges(decades: list[str]) -> list[tuple[int, int]]:
+    """Map decade labels like '1990s'/'90s'/'2000s' to (start, end) year ranges."""
+    ranges: list[tuple[int, int]] = []
+    for d in decades:
+        digits = "".join(c for c in d if c.isdigit())
+        if not digits:
+            continue
+        n = int(digits)
+        if n < 100:  # '90s' / '00s' shorthand
+            n = 1900 + n if n >= 30 else 2000 + n
+        start = (n // 10) * 10
+        ranges.append((start, start + 9))
+    return ranges
+
+
+def _in_decades(year: int, ranges: list[tuple[int, int]]) -> bool:
+    return any(start <= year <= end for start, end in ranges)
+
+
 async def _build_one(
-    client: httpx.AsyncClient, prefs: UserPreferences, candidate: dict, region: str
+    client: httpx.AsyncClient,
+    prefs: UserPreferences,
+    candidate: dict,
+    region: str,
+    decade_ranges: list[tuple[int, int]],
 ) -> Recommendation | None:
     """Enrich one candidate via TMDb, score it, and generate conviction text.
-    Returns None if TMDb can't resolve the title."""
+    Returns None if TMDb can't resolve the title or it falls outside chosen decades."""
     enriched = await tmdb.enrich(
         client, candidate["title"], candidate.get("year"), candidate.get("media_type", "movie"), region
     )
     if enriched is None or not enriched.get("imdb_rating"):
+        return None
+    # Decade filter: drop titles outside the user's chosen decades.
+    if decade_ranges and not _in_decades(enriched.get("year", 0), decade_ranges):
         return None
 
     # Secondary ratings (optional; None in the MVP).
@@ -74,26 +100,34 @@ async def _build_one(
     )
 
 
-async def recommend(prefs: UserPreferences) -> list[Recommendation]:
-    """Full pipeline. Returns 3-5 ranked picks, best composite first, none below floor."""
-    candidates = await claude.select_titles(prefs)
+async def recommend(prefs: UserPreferences) -> tuple[list[Recommendation], str]:
+    """Full pipeline. Returns (ranked picks, mood_read). 3-5 picks, best composite
+    first, none below floor, none repeating prefs.exclude_titles, all within decades."""
+    selection = await claude.select_titles(prefs)
+    candidates = selection["titles"]
+    mood_read = selection["mood_read"]
     if not candidates:
         logger.info("No candidates from Claude (missing key or empty response).")
-        return []
+        return [], mood_read
 
     region = _region_for(prefs)
+    decade_ranges = _decade_ranges(prefs.decades)
+    excluded = {t.strip().lower() for t in prefs.exclude_titles}
+
     async with httpx.AsyncClient() as client:
         built = await asyncio.gather(
-            *(_build_one(client, prefs, c, region) for c in candidates),
+            *(_build_one(client, prefs, c, region, decade_ranges) for c in candidates),
             return_exceptions=True,
         )
 
     recs: list[Recommendation] = []
     for item in built:
         if isinstance(item, Recommendation):
+            if item.title.strip().lower() in excluded:
+                continue  # belt-and-suspenders: never repeat an already-shown title
             recs.append(item)
         elif isinstance(item, Exception):
             logger.warning("Candidate enrichment errored: %s", item)
 
     ranked = scoring.rank(recs, prefs)
-    return ranked[:MAX_RESULTS]
+    return ranked[:MAX_RESULTS], mood_read

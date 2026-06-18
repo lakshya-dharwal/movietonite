@@ -5,47 +5,39 @@ import { useWatchlist } from "./hooks/useWatchlist";
 import Questionnaire from "./components/Questionnaire/Questionnaire";
 import ResultsList from "./components/Results/ResultsList";
 import WatchlistPage from "./components/Watchlist/WatchlistPage";
+import LoadingScreen from "./components/LoadingScreen";
 
 type View = "questionnaire" | "loading" | "results" | "error";
 type Tab = "discover" | "watchlist";
-
-function LoadingSkeletons() {
-  return (
-    <div className="mx-auto max-w-3xl space-y-5 px-4 py-8">
-      <p className="text-center text-ink-dim">Curating your picks…</p>
-      {[0, 1, 2].map((i) => (
-        <div key={i} className="overflow-hidden rounded-card bg-surface shadow-card sm:flex">
-          <div className="shimmer h-64 sm:h-48 sm:w-2/5" />
-          <div className="flex-1 space-y-3 p-5">
-            <div className="shimmer h-5 w-2/3 rounded" />
-            <div className="shimmer h-8 w-24 rounded" />
-            <div className="shimmer h-16 w-full rounded" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 export default function App() {
   const [view, setView] = useState<View>("questionnaire");
   const [tab, setTab] = useState<Tab>("discover");
   const [results, setResults] = useState<Recommendation[]>([]);
+  const [moodRead, setMoodRead] = useState("");
   const [prefs, setPrefs] = useState<UserPreferences | null>(null);
   const [error, setError] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshNote, setRefreshNote] = useState("");
+  // Every title shown this session, so refreshes never repeat a pick.
+  const [shownTitles, setShownTitles] = useState<string[]>([]);
   const watchlist = useWatchlist();
 
   const runRecommend = async (p: UserPreferences) => {
     setPrefs(p);
     setView("loading");
     setError("");
+    setRefreshNote("");
+    setShownTitles([]);
     try {
-      const data = await postRecommend(p);
+      const data = await postRecommend({ ...p, exclude_titles: [] });
       setResults(data.results);
+      setMoodRead(data.mood_read);
       if (data.results.length === 0) {
-        setError("No picks cleared the quality floor. Try widening your genres or lowering expectations.");
+        setError("No picks cleared the quality floor. Try widening your genres or lowering the minimum rating.");
         setView("error");
       } else {
+        setShownTitles(data.results.map((r) => r.title));
         setView("results");
       }
     } catch (e) {
@@ -54,9 +46,33 @@ export default function App() {
     }
   };
 
+  // Re-roll: ask for fresh picks, excluding everything already seen this session.
+  const refresh = async () => {
+    if (!prefs || refreshing) return;
+    setRefreshing(true);
+    setRefreshNote("");
+    try {
+      const data = await postRecommend({ ...prefs, exclude_titles: shownTitles });
+      if (data.results.length === 0) {
+        setRefreshNote("That's the bottom of the barrel for these filters — try a New search for more.");
+      } else {
+        setResults(data.results);
+        if (data.mood_read) setMoodRead(data.mood_read);
+        setShownTitles((prev) => [...new Set([...prev, ...data.results.map((r) => r.title)])]);
+      }
+    } catch (e) {
+      setRefreshNote(e instanceof Error ? e.message : "Couldn't refresh — try again.");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const restart = () => {
     setView("questionnaire");
     setResults([]);
+    setMoodRead("");
+    setShownTitles([]);
+    setRefreshNote("");
     setTab("discover");
   };
 
@@ -90,7 +106,7 @@ export default function App() {
         ) : (
           <>
             {view === "questionnaire" && <Questionnaire onComplete={runRecommend} />}
-            {view === "loading" && <LoadingSkeletons />}
+            {view === "loading" && prefs && <LoadingScreen prefs={prefs} />}
             {view === "error" && (
               <div className="mx-auto max-w-2xl px-4 py-16 text-center">
                 <p className="font-serif text-2xl text-ink">Hmm.</p>
@@ -105,12 +121,30 @@ export default function App() {
             )}
             {view === "results" && prefs && (
               <div className="mx-auto max-w-3xl px-4 py-8">
-                <div className="mb-5 flex items-center justify-between">
+                <div className="mb-3 flex items-center justify-between gap-3">
                   <h2 className="font-serif text-2xl font-semibold text-ink">Your picks</h2>
-                  <button onClick={restart} className="text-sm text-emerald hover:underline">
-                    ↺ New search
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={refresh}
+                      disabled={refreshing}
+                      className="rounded-full bg-emerald/10 px-4 py-1.5 text-sm font-semibold text-emerald ring-1 ring-emerald/30 transition-opacity hover:bg-emerald/20 disabled:opacity-50"
+                    >
+                      {refreshing ? "Re-rolling…" : "↻ Fresh picks"}
+                    </button>
+                    <button onClick={restart} className="text-sm text-ink-dim hover:text-ink">
+                      New search
+                    </button>
+                  </div>
                 </div>
+
+                {/* Curator's mood read — Claude's logic for this set */}
+                {moodRead && (
+                  <p className="mb-5 rounded-card border-l-2 border-emerald bg-surface/60 px-4 py-3 text-sm italic leading-relaxed text-ink-dim">
+                    {moodRead}
+                  </p>
+                )}
+                {refreshNote && <p className="mb-4 text-sm text-gold">{refreshNote}</p>}
+
                 <ResultsList
                   results={results}
                   initialSort={prefs.sort_by}

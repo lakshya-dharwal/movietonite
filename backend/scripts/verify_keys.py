@@ -44,7 +44,7 @@ async def check_claude() -> None:
         mood="dark", time="2h+", media_type="movie", genres=["thriller"],
         recent_loves=["Prisoners"],
     )
-    titles = await claude.select_titles(prefs)
+    titles = (await claude.select_titles(prefs))["titles"]
     if titles:
         names = ", ".join(t["title"] for t in titles[:3])
         print(f"✓ Claude OK — suggested {len(titles)} titles (e.g. {names})")

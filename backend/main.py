@@ -55,8 +55,8 @@ async def health() -> dict:
 
 @app.post("/recommend", response_model=RecommendResponse)
 async def recommend_route(prefs: UserPreferences) -> RecommendResponse:
-    results = await recommend(prefs)
-    return RecommendResponse(results=results)
+    results, mood_read = await recommend(prefs)
+    return RecommendResponse(results=results, mood_read=mood_read)
 
 
 @app.get("/movie/{tmdb_id}", response_model=MovieDetail)

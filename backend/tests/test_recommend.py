@@ -26,11 +26,14 @@ def test_recommend_validation_error():
 @pytest.fixture
 def mock_pipeline(monkeypatch):
     async def fake_select_titles(prefs):
-        return [
-            {"title": "Great Film", "year": 2013, "media_type": "movie"},
-            {"title": "Mediocre Film", "year": 2015, "media_type": "movie"},
-            {"title": "Best Film", "year": 2019, "media_type": "movie"},
-        ]
+        return {
+            "mood_read": "You want something heavy and proven.",
+            "titles": [
+                {"title": "Great Film", "year": 2013, "media_type": "movie"},
+                {"title": "Mediocre Film", "year": 2015, "media_type": "movie"},
+                {"title": "Best Film", "year": 2019, "media_type": "movie"},
+            ],
+        }
 
     fake_db = {
         "Great Film": {"rating": 8.2, "votes": 500_000, "id": 1},
@@ -76,3 +79,25 @@ def test_recommend_returns_ranked_and_floored(mock_pipeline):
     assert top["rating_badge"] == "CRITICALLY ACCLAIMED"
     assert top["convince_you"]                        # conviction text present
     assert top["streaming_on"] == ["Netflix"]
+    assert resp.json()["mood_read"]                   # curator's mood read present
+
+
+def test_recommend_excludes_already_shown(mock_pipeline):
+    body = {
+        "mood": "dark", "time": "2h+", "media_type": "movie", "genres": ["thriller"],
+        "min_rating": 7.5, "exclude_titles": ["Best Film"],
+    }
+    results = client.post("/recommend", json=body).json()["results"]
+    titles = [r["title"] for r in results]
+    assert "Best Film" not in titles                  # refresh skips already-shown
+    assert titles == ["Great Film"]
+
+
+def test_recommend_decade_filter(mock_pipeline):
+    # Only 2010s -> Best Film (2019) and Great Film (2013) qualify; both pass floor.
+    body = {
+        "mood": "dark", "time": "2h+", "media_type": "movie", "genres": ["thriller"],
+        "min_rating": 7.5, "decades": ["2010s"],
+    }
+    results = client.post("/recommend", json=body).json()["results"]
+    assert [r["title"] for r in results] == ["Best Film", "Great Film"]

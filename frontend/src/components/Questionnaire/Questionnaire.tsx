@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { UserPreferences } from "../../lib/types";
 import {
+  DECADES,
   GENRES,
   INDIAN_LANGS,
   MEDIA_TYPES,
@@ -23,6 +24,7 @@ type StepId =
   | "media"
   | "genre"
   | "subgenre"
+  | "decade"
   | "pacing"
   | "origin"
   | "examples";
@@ -36,7 +38,9 @@ const DEFAULT_PREFS: UserPreferences = {
   pacing: "any",
   origin: "any",
   indian_langs: [],
+  decades: [],
   recent_loves: [],
+  exclude_titles: [],
   min_rating: 7.5,
   sort_by: "composite",
 };
@@ -87,14 +91,18 @@ export default function Questionnaire({ onComplete }: Props) {
   const steps = useMemo<StepId[]>(() => {
     const base: StepId[] = ["mood", "time", "media", "genre"];
     if (genreHasSubgenres(prefs.genres)) base.push("subgenre");
-    base.push("pacing", "origin", "examples");
+    base.push("decade", "pacing", "origin", "examples");
     return base;
   }, [prefs.genres]);
 
   const step = steps[Math.min(stepIndex, steps.length - 1)];
   const progress = ((stepIndex + 1) / steps.length) * 100;
 
-  const toggleArray = (key: "genres" | "subgenres" | "indian_langs", value: string, max?: number) => {
+  const toggleArray = (
+    key: "genres" | "subgenres" | "indian_langs" | "decades",
+    value: string,
+    max?: number,
+  ) => {
     setPrefs((p) => {
       const cur = p[key];
       let next: string[];
@@ -135,6 +143,7 @@ export default function Questionnaire({ onComplete }: Props) {
     media: "Movie or show?",
     genre: "Pick up to 3 genres",
     subgenre: "Narrow it down (optional)",
+    decade: "Any era in mind? (optional)",
     pacing: "Slow burn or fast-paced?",
     origin: "Where should it come from?",
     examples: "Anything you recently loved?",
@@ -180,6 +189,19 @@ export default function Questionnaire({ onComplete }: Props) {
             multi
             onSelect={(v) => toggleArray("subgenres", v)}
           />
+        )}
+        {step === "decade" && (
+          <div className="space-y-3">
+            <p className="text-sm text-ink-dim">
+              Choose one or more eras, or skip for any time period.
+            </p>
+            <OptionGrid
+              options={DECADES}
+              selected={prefs.decades}
+              multi
+              onSelect={(v) => toggleArray("decades", v)}
+            />
+          </div>
         )}
         {step === "pacing" && (
           <OptionGrid options={PACING} selected={[prefs.pacing]} onSelect={(v) => setSingle("pacing", v)} />

@@ -58,20 +58,31 @@ def _build_selection_prompt(prefs: UserPreferences) -> str:
         parts.append(f"origin: {prefs.origin}")
     if prefs.indian_langs:
         parts.append(f"indian_languages: {', '.join(prefs.indian_langs)}")
+    if prefs.decades:
+        parts.append(f"decades: {', '.join(prefs.decades)} (only titles released in these decades)")
     if prefs.recent_loves:
         parts.append(f"recently_loved: {', '.join(prefs.recent_loves)}")
+    if prefs.exclude_titles:
+        parts.append(
+            "already_shown (DO NOT suggest any of these; pick fresh, different titles): "
+            + ", ".join(prefs.exclude_titles)
+        )
     return "\n".join(parts)
 
 
 SELECTION_SYSTEM = (
     "You are a film & TV curator for a rating-first recommendation app. "
     "Given a user's preferences, propose 6-8 real, well-rated, critically respected "
-    "titles that match their mood, genres, sub-genres, pacing, and origin. Strongly "
-    "bias toward titles with high IMDb ratings (7.5+). Favor a mix of well-known and "
-    "deeper cuts. If origin is 'indian' or 'both', include strong Indian-cinema picks.\n\n"
-    "Return JSON ONLY — no prose, no markdown fences. The JSON must be an array of "
-    'objects: [{"title": str, "year": int, "media_type": "movie"|"show"}]. '
-    "Use the exact widely-known title and original release year so it can be looked up."
+    "titles that match their mood, genres, sub-genres, pacing, decades, and origin. "
+    "Strongly bias toward titles with high IMDb ratings (7.5+). Favor a mix of well-known "
+    "and deeper cuts. If origin is 'indian' or 'both', include strong Indian-cinema picks. "
+    "If decades are given, every title MUST fall within them. If an 'already_shown' list is "
+    "given, you MUST avoid every one of those titles and pick genuinely different ones.\n\n"
+    "Return JSON ONLY — no prose, no markdown fences — as an object with this exact shape:\n"
+    '{"mood_read": str, "titles": [{"title": str, "year": int, "media_type": "movie"|"show"}]}\n'
+    '"mood_read": one or two playful but insightful sentences reading the user\'s mood and '
+    "explaining the through-line of this set (why these picks fit them right now). "
+    '"titles": use the exact widely-known title and original release year so each can be looked up.'
 )
 
 CONVICTION_SYSTEM = (
@@ -84,11 +95,13 @@ CONVICTION_SYSTEM = (
 )
 
 
-async def select_titles(prefs: UserPreferences) -> list[dict]:
-    """Ask Claude for candidate titles. Returns [] on any failure (never raises)."""
+async def select_titles(prefs: UserPreferences) -> dict:
+    """Ask Claude for candidate titles + a mood read. Returns
+    {"titles": [...], "mood_read": str}; empty/safe defaults on any failure."""
+    empty = {"titles": [], "mood_read": ""}
     client = _get_client()
     if client is None:
-        return []
+        return empty
     try:
         resp = await client.messages.create(
             model=settings.anthropic_model,
@@ -99,22 +112,28 @@ async def select_titles(prefs: UserPreferences) -> list[dict]:
         )
         text = next((b.text for b in resp.content if b.type == "text"), "")
         data = json.loads(_strip_json(text))
-        if not isinstance(data, list):
-            return []
-        out: list[dict] = []
-        for item in data:
+        # Accept either the new object shape or a bare list (defensive).
+        if isinstance(data, list):
+            raw_titles, mood_read = data, ""
+        elif isinstance(data, dict):
+            raw_titles = data.get("titles", [])
+            mood_read = str(data.get("mood_read", ""))
+        else:
+            return empty
+        titles: list[dict] = []
+        for item in raw_titles:
             if isinstance(item, dict) and item.get("title"):
-                out.append(
+                titles.append(
                     {
                         "title": str(item["title"]),
                         "year": int(item["year"]) if str(item.get("year", "")).isdigit() else None,
                         "media_type": item.get("media_type", "movie"),
                     }
                 )
-        return out
+        return {"titles": titles, "mood_read": mood_read}
     except Exception as exc:  # noqa: BLE001 — defensive: bad model output must not crash
         logger.warning("Claude title selection failed: %s", exc)
-        return []
+        return empty
 
 
 async def write_conviction(prefs: UserPreferences, rec_summary: dict) -> dict:

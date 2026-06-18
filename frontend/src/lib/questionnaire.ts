@@ -88,6 +88,13 @@ export const ORIGINS: Option[] = [
   { value: "any", label: "No preference" },
 ];
 
+export const DECADES: Option[] = [
+  { value: "1990s", label: "90s", hint: "1990–1999" },
+  { value: "2000s", label: "2000s", hint: "2000–2009" },
+  { value: "2010s", label: "2010s", hint: "2010–2019" },
+  { value: "2020s", label: "2020s", hint: "2020–now" },
+];
+
 export const INDIAN_LANGS: Option[] = [
   { value: "hindi", label: "Hindi" },
   { value: "tamil", label: "Tamil" },

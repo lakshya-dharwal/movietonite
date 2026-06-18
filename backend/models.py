@@ -15,7 +15,9 @@ class UserPreferences(BaseModel):
     pacing: str = "any"             # slow | fast | any
     origin: str = "any"             # global | indian | both | any
     indian_langs: list[str] = Field(default_factory=list)
+    decades: list[str] = Field(default_factory=list)   # 1990s | 2000s | 2010s | 2020s
     recent_loves: list[str] = Field(default_factory=list)
+    exclude_titles: list[str] = Field(default_factory=list)  # already-shown titles to skip (refresh)
     min_rating: float = 7.5
     sort_by: str = "composite"      # composite | imdb | votes | newest | runtime | letterboxd
 
@@ -48,6 +50,7 @@ class Recommendation(BaseModel):
 
 class RecommendResponse(BaseModel):
     results: list[Recommendation] = Field(default_factory=list)
+    mood_read: str = ""   # Claude's read on the user's mood + why this set fits
 
 
 class MovieDetail(BaseModel):
