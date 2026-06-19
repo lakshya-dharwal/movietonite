@@ -1,13 +1,18 @@
-import type { RecommendResponse, UserPreferences } from "./types";
+import type { MovieDetail, RecommendResponse, UserPreferences } from "./types";
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+const RAW_BASE = import.meta.env.VITE_API_BASE_URL?.trim();
+const BASE_URL = RAW_BASE ? RAW_BASE.replace(/\/+$/, "") : "/api";
 
-export async function postRecommend(prefs: UserPreferences): Promise<RecommendResponse> {
-  const resp = await fetch(`${BASE_URL}/recommend`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(prefs),
-  });
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  let resp: Response;
+  try {
+    resp = await fetch(`${BASE_URL}${path}`, init);
+  } catch {
+    throw new Error(
+      "Couldn't reach the recommendation service. Start the backend or set VITE_API_BASE_URL.",
+    );
+  }
+
   if (!resp.ok) {
     let message = `Request failed (${resp.status})`;
     try {
@@ -18,5 +23,19 @@ export async function postRecommend(prefs: UserPreferences): Promise<RecommendRe
     }
     throw new Error(message);
   }
-  return resp.json();
+
+  return resp.json() as Promise<T>;
+}
+
+export function postRecommend(prefs: UserPreferences): Promise<RecommendResponse> {
+  return request<RecommendResponse>("/recommend", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(prefs),
+  });
+}
+
+export function getMovieDetail(tmdbId: number, mediaType: string): Promise<MovieDetail> {
+  const params = new URLSearchParams({ media_type: mediaType });
+  return request<MovieDetail>(`/movie/${tmdbId}?${params.toString()}`);
 }

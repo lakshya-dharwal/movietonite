@@ -46,3 +46,24 @@ export interface RecommendResponse {
   results: Recommendation[];
   mood_read: string;
 }
+
+export interface MovieDetail {
+  tmdb_id: number;
+  title: string;
+  year: number;
+  media_type: string;
+  full_synopsis: string;
+  director: string;
+  cast: string[];
+  runtime_min: number;
+  genres: string[];
+  language: string;
+  budget: number | null;
+  imdb_rating: number | null;
+  letterboxd_rating: number | null;
+  metacritic_score: number | null;
+  streaming_on: string[];
+  rent_buy_on: string[];
+  poster_url: string | null;
+  backdrop_url: string | null;
+}

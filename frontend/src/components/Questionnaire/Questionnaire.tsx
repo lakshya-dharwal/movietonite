@@ -66,10 +66,10 @@ function OptionGrid({
             onClick={() => onSelect(opt.value)}
             aria-pressed={active}
             className={
-              "rounded-card p-4 text-left transition-all " +
+              "rounded-card border p-4 text-left transition-all " +
               (active
-                ? "bg-emerald/15 ring-2 ring-emerald"
-                : "bg-surface ring-1 ring-white/5 hover:ring-white/20")
+                ? "border-accent accent-panel shadow-card"
+                : "border-hairline bg-surface hover:border-ink-mute")
             }
           >
             <div className="font-medium text-ink">{opt.label}</div>
@@ -150,109 +150,111 @@ export default function Questionnaire({ onComplete }: Props) {
   };
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
-      <div className="mb-8 h-1 w-full overflow-hidden rounded-full bg-surface-2">
-        <div className="h-full bg-emerald transition-all duration-300" style={{ width: `${progress}%` }} />
-      </div>
+    <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+      <div className="rounded-sheet border border-hairline bg-surface px-5 py-8 shadow-card sm:px-8 sm:py-10">
+        <div className="mb-8 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
+          <div className="h-full bg-accent transition-all duration-300" style={{ width: `${progress}%` }} />
+        </div>
 
-      <h2 className="mb-1 font-serif text-3xl font-semibold text-ink">{titles[step]}</h2>
-      <p className="mb-6 text-sm text-ink-dim">
-        Step {stepIndex + 1} of {steps.length}
-      </p>
+        <h2 className="mb-1 font-serif text-3xl font-semibold text-ink sm:text-[32px]">{titles[step]}</h2>
+        <p className="mb-6 font-mono text-[12px] uppercase tracking-[0.18em] text-ink-mute">
+          Step {stepIndex + 1} of {steps.length}
+        </p>
 
-      <div className="min-h-[16rem]">
-        {step === "mood" && (
-          <OptionGrid options={MOODS} selected={[prefs.mood]} onSelect={(v) => setSingle("mood", v)} />
-        )}
-        {step === "time" && (
-          <OptionGrid options={TIMES} selected={[prefs.time]} onSelect={(v) => setSingle("time", v)} />
-        )}
-        {step === "media" && (
-          <OptionGrid
-            options={MEDIA_TYPES}
-            selected={[prefs.media_type]}
-            onSelect={(v) => setSingle("media_type", v)}
-          />
-        )}
-        {step === "genre" && (
-          <OptionGrid
-            options={GENRES}
-            selected={prefs.genres}
-            multi
-            onSelect={(v) => toggleArray("genres", v, 3)}
-          />
-        )}
-        {step === "subgenre" && (
-          <OptionGrid
-            options={subgenreOptionsFor(prefs.genres)}
-            selected={prefs.subgenres}
-            multi
-            onSelect={(v) => toggleArray("subgenres", v)}
-          />
-        )}
-        {step === "decade" && (
-          <div className="space-y-3">
-            <p className="text-sm text-ink-dim">
-              Choose one or more eras, or skip for any time period.
-            </p>
+        <div className="min-h-[16rem]">
+          {step === "mood" && (
+            <OptionGrid options={MOODS} selected={[prefs.mood]} onSelect={(v) => setSingle("mood", v)} />
+          )}
+          {step === "time" && (
+            <OptionGrid options={TIMES} selected={[prefs.time]} onSelect={(v) => setSingle("time", v)} />
+          )}
+          {step === "media" && (
             <OptionGrid
-              options={DECADES}
-              selected={prefs.decades}
+              options={MEDIA_TYPES}
+              selected={[prefs.media_type]}
+              onSelect={(v) => setSingle("media_type", v)}
+            />
+          )}
+          {step === "genre" && (
+            <OptionGrid
+              options={GENRES}
+              selected={prefs.genres}
               multi
-              onSelect={(v) => toggleArray("decades", v)}
+              onSelect={(v) => toggleArray("genres", v, 3)}
             />
-          </div>
-        )}
-        {step === "pacing" && (
-          <OptionGrid options={PACING} selected={[prefs.pacing]} onSelect={(v) => setSingle("pacing", v)} />
-        )}
-        {step === "origin" && (
-          <div className="space-y-5">
-            <OptionGrid options={ORIGINS} selected={[prefs.origin]} onSelect={(v) => setSingle("origin", v)} />
-            {(prefs.origin === "indian" || prefs.origin === "both") && (
-              <div className="animate-fade-in">
-                <p className="mb-3 text-sm text-ink-dim">Preferred languages (optional)</p>
-                <OptionGrid
-                  options={INDIAN_LANGS}
-                  selected={prefs.indian_langs}
-                  multi
-                  onSelect={(v) => toggleArray("indian_langs", v)}
-                />
-              </div>
-            )}
-          </div>
-        )}
-        {step === "examples" && (
-          <div>
-            <p className="mb-3 text-sm text-ink-dim">
-              Name a few titles you loved — we'll match the taste. Comma-separated.
-            </p>
-            <textarea
-              value={lovesText}
-              onChange={(e) => setLovesText(e.target.value)}
-              placeholder="e.g. Severance, Prisoners, Parasite"
-              rows={3}
-              className="w-full rounded-card bg-surface p-4 text-ink outline-none ring-1 ring-white/10 placeholder:text-ink-dim/60 focus:ring-emerald"
+          )}
+          {step === "subgenre" && (
+            <OptionGrid
+              options={subgenreOptionsFor(prefs.genres)}
+              selected={prefs.subgenres}
+              multi
+              onSelect={(v) => toggleArray("subgenres", v)}
             />
-          </div>
-        )}
-      </div>
+          )}
+          {step === "decade" && (
+            <div className="space-y-3">
+              <p className="text-sm text-ink-dim">
+                Choose one or more eras, or skip for any time period.
+              </p>
+              <OptionGrid
+                options={DECADES}
+                selected={prefs.decades}
+                multi
+                onSelect={(v) => toggleArray("decades", v)}
+              />
+            </div>
+          )}
+          {step === "pacing" && (
+            <OptionGrid options={PACING} selected={[prefs.pacing]} onSelect={(v) => setSingle("pacing", v)} />
+          )}
+          {step === "origin" && (
+            <div className="space-y-5">
+              <OptionGrid options={ORIGINS} selected={[prefs.origin]} onSelect={(v) => setSingle("origin", v)} />
+              {(prefs.origin === "indian" || prefs.origin === "both") && (
+                <div className="animate-fade-in">
+                  <p className="mb-3 text-sm text-ink-dim">Preferred languages (optional)</p>
+                  <OptionGrid
+                    options={INDIAN_LANGS}
+                    selected={prefs.indian_langs}
+                    multi
+                    onSelect={(v) => toggleArray("indian_langs", v)}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+          {step === "examples" && (
+            <div>
+              <p className="mb-3 text-sm text-ink-dim">
+                Name a few titles you loved. We&apos;ll match the taste. Comma-separated.
+              </p>
+              <textarea
+                value={lovesText}
+                onChange={(e) => setLovesText(e.target.value)}
+                placeholder="e.g. Severance, Prisoners, Parasite"
+                rows={3}
+                className="w-full rounded-card border border-hairline bg-surface p-4 text-ink outline-none transition placeholder:text-ink-mute focus:border-accent"
+              />
+            </div>
+          )}
+        </div>
 
-      <div className="mt-8 flex items-center justify-between">
-        <button
-          onClick={back}
-          disabled={stepIndex === 0}
-          className="rounded-full px-4 py-2 text-sm text-ink-dim disabled:opacity-30 hover:text-ink"
-        >
-          ← Back
-        </button>
-        <button
-          onClick={next}
-          disabled={!canAdvance()}
-          className="rounded-full bg-emerald px-8 py-3 text-base font-semibold text-bg transition-opacity disabled:cursor-not-allowed disabled:opacity-40 hover:opacity-90"
-        >
-          {stepIndex === steps.length - 1 ? "Get my picks" : "Next"}
-        </button>
+        <div className="mt-8 flex items-center justify-between">
+          <button
+            onClick={back}
+            disabled={stepIndex === 0}
+            className="rounded-full px-4 py-2 text-sm text-ink-dim transition disabled:opacity-30 hover:text-ink"
+          >
+            ← Back
+          </button>
+          <button
+            onClick={next}
+            disabled={!canAdvance()}
+            className="rounded-full bg-accent px-8 py-3 text-base font-semibold text-accent-ink transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {stepIndex === steps.length - 1 ? "Get my picks" : "Next"}
+          </button>
+        </div>
       </div>
     </div>
   );

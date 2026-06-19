@@ -47,7 +47,7 @@ export default function ResultsList({ results, initialSort, initialMinRating, ha
         onMinRatingChange={setMinRating}
       />
       {view.length === 0 ? (
-        <p className="rounded-card bg-surface p-8 text-center text-ink-dim">
+        <p className="rounded-card border border-hairline bg-surface p-8 text-center text-ink-dim shadow-card">
           No picks meet that rating floor. Lower the minimum to see more.
         </p>
       ) : (

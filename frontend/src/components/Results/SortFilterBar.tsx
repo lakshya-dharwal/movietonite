@@ -15,13 +15,13 @@ const SORTS = [
 
 export default function SortFilterBar({ sortBy, minRating, onSortChange, onMinRatingChange }: Props) {
   return (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-card bg-surface px-4 py-3 text-sm">
-      <label className="flex items-center gap-2">
-        <span className="text-ink-dim">Sort</span>
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-4 rounded-card border border-hairline bg-surface px-4 py-3 text-sm shadow-card">
+      <label className="flex items-center gap-3">
+        <span className="eyebrow text-ink-mute">Sort</span>
         <select
           value={sortBy}
           onChange={(e) => onSortChange(e.target.value)}
-          className="rounded-md bg-surface-2 px-2 py-1 text-ink outline-none ring-1 ring-white/10 focus:ring-emerald"
+          className="rounded-full border border-hairline bg-surface-2 px-3 py-2 text-sm text-ink outline-none transition focus:border-accent"
         >
           {SORTS.map((s) => (
             <option key={s.value} value={s.value}>
@@ -32,8 +32,8 @@ export default function SortFilterBar({ sortBy, minRating, onSortChange, onMinRa
       </label>
 
       <label className="flex flex-1 items-center gap-3">
-        <span className="whitespace-nowrap text-ink-dim">
-          Min rating <span className="font-mono text-emerald">{minRating.toFixed(1)}</span>
+        <span className="whitespace-nowrap eyebrow text-ink-mute">
+          Min rating <span className="ml-1 font-mono text-rating">{minRating.toFixed(1)}</span>
         </span>
         <input
           type="range"
@@ -42,7 +42,7 @@ export default function SortFilterBar({ sortBy, minRating, onSortChange, onMinRa
           step={0.1}
           value={minRating}
           onChange={(e) => onMinRatingChange(parseFloat(e.target.value))}
-          className="h-1 flex-1 cursor-pointer accent-emerald"
+          className="h-1 flex-1 cursor-pointer accent-accent"
         />
       </label>
     </div>

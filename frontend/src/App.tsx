@@ -6,12 +6,14 @@ import Questionnaire from "./components/Questionnaire/Questionnaire";
 import ResultsList from "./components/Results/ResultsList";
 import WatchlistPage from "./components/Watchlist/WatchlistPage";
 import LoadingScreen from "./components/LoadingScreen";
+import LandingPage from "./components/Landing/LandingPage";
+import { PopcornGlyph, PopcornStripe, ThemeToggle, useTheme } from "./components/ThemeChrome";
 
-type View = "questionnaire" | "loading" | "results" | "error";
+type View = "landing" | "questionnaire" | "loading" | "results" | "error";
 type Tab = "discover" | "watchlist";
 
 export default function App() {
-  const [view, setView] = useState<View>("questionnaire");
+  const [view, setView] = useState<View>("landing");
   const [tab, setTab] = useState<Tab>("discover");
   const [results, setResults] = useState<Recommendation[]>([]);
   const [moodRead, setMoodRead] = useState("");
@@ -19,11 +21,12 @@ export default function App() {
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [refreshNote, setRefreshNote] = useState("");
-  // Every title shown this session, so refreshes never repeat a pick.
   const [shownTitles, setShownTitles] = useState<string[]>([]);
   const watchlist = useWatchlist();
+  const { theme, setTheme } = useTheme();
 
   const runRecommend = async (p: UserPreferences) => {
+    setTab("discover");
     setPrefs(p);
     setView("loading");
     setError("");
@@ -46,7 +49,6 @@ export default function App() {
     }
   };
 
-  // Re-roll: ask for fresh picks, excluding everything already seen this session.
   const refresh = async () => {
     if (!prefs || refreshing) return;
     setRefreshing(true);
@@ -67,7 +69,7 @@ export default function App() {
     }
   };
 
-  const restart = () => {
+  const newSearch = () => {
     setView("questionnaire");
     setResults([]);
     setMoodRead("");
@@ -76,26 +78,59 @@ export default function App() {
     setTab("discover");
   };
 
+  const goHome = () => {
+    setTab("discover");
+    setView("landing");
+  };
+
+  const openDiscover = () => {
+    setTab("discover");
+    setView((current) => (current === "landing" ? "landing" : current));
+  };
+
+  const openHowItWorks = () => {
+    setTab("discover");
+    setView("landing");
+    window.setTimeout(() => {
+      document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 60);
+  };
+
   return (
-    <div className="min-h-full">
-      <header className="sticky top-0 z-10 border-b border-white/5 bg-bg/80 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
-          <button onClick={restart} className="text-left">
-            <span className="font-serif text-lg font-semibold text-ink">What Should I Watch Tonight?</span>
+    <div className="min-h-full bg-bg">
+      <PopcornStripe />
+      <header className="sticky top-0 z-20 border-b border-hairline bg-bg backdrop-blur-sm">
+        <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-4 px-4 py-4 sm:px-8 lg:px-10">
+          <button onClick={goHome} className="flex items-center gap-2.5 text-left">
+            <PopcornGlyph />
+            <span className="text-[15px] font-semibold lowercase text-ink">movietonite</span>
           </button>
-          <nav className="flex items-center gap-1 text-sm">
+          <nav className="flex items-center gap-2 text-[13px]">
             <button
-              onClick={() => setTab("discover")}
-              className={"rounded-full px-3 py-1.5 " + (tab === "discover" ? "bg-emerald/15 text-emerald" : "text-ink-dim hover:text-ink")}
+              onClick={openHowItWorks}
+              className="rounded-full px-3 py-1.5 text-ink-dim transition hover:text-ink"
+            >
+              How it works
+            </button>
+            <button
+              onClick={openDiscover}
+              className={
+                "rounded-full px-3 py-1.5 transition " +
+                (tab === "discover" ? "bg-surface-2 text-accent" : "text-ink-dim hover:text-ink")
+              }
             >
               Discover
             </button>
             <button
               onClick={() => setTab("watchlist")}
-              className={"rounded-full px-3 py-1.5 " + (tab === "watchlist" ? "bg-emerald/15 text-emerald" : "text-ink-dim hover:text-ink")}
+              className={
+                "rounded-full px-3 py-1.5 transition " +
+                (tab === "watchlist" ? "bg-surface-2 text-accent" : "text-ink-dim hover:text-ink")
+              }
             >
               Watchlist{watchlist.items.length > 0 && ` (${watchlist.items.length})`}
             </button>
+            <ThemeToggle theme={theme} setTheme={setTheme} />
           </nav>
         </div>
       </header>
@@ -105,45 +140,53 @@ export default function App() {
           <WatchlistPage items={watchlist.items} onRemove={watchlist.remove} />
         ) : (
           <>
+            {view === "landing" && (
+              <LandingPage onStart={() => setView("questionnaire")} onOpenWatchlist={() => setTab("watchlist")} />
+            )}
             {view === "questionnaire" && <Questionnaire onComplete={runRecommend} />}
             {view === "loading" && prefs && <LoadingScreen prefs={prefs} />}
             {view === "error" && (
               <div className="mx-auto max-w-2xl px-4 py-16 text-center">
-                <p className="font-serif text-2xl text-ink">Hmm.</p>
-                <p className="mt-2 text-ink-dim">{error}</p>
-                <button
-                  onClick={restart}
-                  className="mt-6 rounded-full bg-emerald px-6 py-2.5 font-semibold text-bg hover:opacity-90"
-                >
-                  Start over
-                </button>
+                <div className="rounded-sheet border border-hairline bg-surface px-8 py-14 shadow-card">
+                  <p className="eyebrow text-accent">Something Broke The Mood</p>
+                  <p className="mt-3 font-serif text-3xl text-ink">Hmm.</p>
+                  <p className="mt-3 text-ink-dim">{error}</p>
+                  <button
+                    onClick={newSearch}
+                    className="mt-6 rounded-full bg-accent px-6 py-2.5 font-semibold text-accent-ink hover:bg-accent-strong"
+                  >
+                    Start over
+                  </button>
+                </div>
               </div>
             )}
             {view === "results" && prefs && (
-              <div className="mx-auto max-w-3xl px-4 py-8">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <h2 className="font-serif text-2xl font-semibold text-ink">Your picks</h2>
+              <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
+                <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="eyebrow text-accent">Ranked Best-First</p>
+                    <h2 className="mt-2 font-serif text-4xl font-medium text-ink">Your picks</h2>
+                  </div>
                   <div className="flex items-center gap-3">
                     <button
                       onClick={refresh}
                       disabled={refreshing}
-                      className="rounded-full bg-emerald/10 px-4 py-1.5 text-sm font-semibold text-emerald ring-1 ring-emerald/30 transition-opacity hover:bg-emerald/20 disabled:opacity-50"
+                      className="rounded-full border border-hairline bg-surface px-4 py-2 text-sm font-semibold text-accent transition hover:text-accent-strong disabled:opacity-50"
                     >
-                      {refreshing ? "Re-rolling…" : "↻ Fresh picks"}
+                      {refreshing ? "Re-rolling..." : "↺ Fresh picks"}
                     </button>
-                    <button onClick={restart} className="text-sm text-ink-dim hover:text-ink">
+                    <button onClick={newSearch} className="text-sm text-accent transition hover:text-accent-strong">
                       New search
                     </button>
                   </div>
                 </div>
 
-                {/* Curator's mood read — Claude's logic for this set */}
                 {moodRead && (
-                  <p className="mb-5 rounded-card border-l-2 border-emerald bg-surface/60 px-4 py-3 text-sm italic leading-relaxed text-ink-dim">
+                  <p className="mb-5 rounded-card border-l-2 border-accent bg-surface px-4 py-3 text-sm italic leading-7 text-ink-dim shadow-card">
                     {moodRead}
                   </p>
                 )}
-                {refreshNote && <p className="mb-4 text-sm text-gold">{refreshNote}</p>}
+                {refreshNote && <p className="mb-4 text-sm text-accent">{refreshNote}</p>}
 
                 <ResultsList
                   results={results}
