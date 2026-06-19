@@ -24,6 +24,9 @@ app = FastAPI(title="What Should I Watch Tonight? API", version="1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
+    # Also allow any Vercel deployment (production + preview URLs) without having to
+    # pin the exact origin in ALLOWED_ORIGIN. Either the list or the regex may match.
+    allow_origin_regex=r"https://([a-z0-9-]+\.)*vercel\.app",
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
