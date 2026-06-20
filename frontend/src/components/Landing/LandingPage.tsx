@@ -5,8 +5,17 @@ interface Props {
   onOpenWatchlist: () => void;
 }
 
-const LEFT_RAIL = ["A", "B", "C", "D", "E"];
-const RIGHT_RAIL = ["F", "G", "H", "I", "J"];
+const LEFT_RAIL = [
+  { src: "/posters/obsession_ver2.jpg", alt: "Obsession poster" },
+  { src: "/posters/aashiqui_two.jpg", alt: "Aashiqui 2 poster" },
+  { src: "/posters/marty_supreme_ver2.jpg", alt: "Marty Supreme poster" },
+];
+
+const RIGHT_RAIL = [
+  { src: "/posters/house_of_the_dragon.jpg", alt: "House of the Dragon poster" },
+  { src: "/posters/om_shanti_om_ver4.jpg", alt: "Om Shanti Om poster" },
+  { src: "/posters/tumbbad.jpg", alt: "Tumbbad poster" },
+];
 
 function PreviewRow({
   rank,
@@ -69,15 +78,18 @@ function RankedPreviewCard() {
   );
 }
 
-function RailColumn({ items, animation }: { items: string[]; animation: string }) {
+function RailColumn({
+  items,
+  animation,
+}: {
+  items: Array<{ src: string; alt: string }>;
+  animation: string;
+}) {
   return (
     <div className={`flex w-[152px] flex-col gap-[18px] ${animation}`}>
       {items.map((item) => (
-        <div
-          key={item}
-          className="poster-placeholder flex aspect-[2/3] items-end justify-start rounded-card border border-hairline p-3 text-[10px] uppercase tracking-[0.22em] text-ink-mute"
-        >
-          poster
+        <div key={item.src} className="overflow-hidden rounded-card border border-hairline shadow-card">
+          <img src={item.src} alt={item.alt} className="aspect-[2/3] w-full object-cover" loading="eager" />
         </div>
       ))}
     </div>
